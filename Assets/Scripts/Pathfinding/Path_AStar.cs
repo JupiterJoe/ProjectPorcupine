@@ -1,14 +1,31 @@
-﻿using UnityEngine;
+#region License
+// ====================================================
+// Project Porcupine Copyright(C) 2016 Team Porcupine
+// This program comes with ABSOLUTELY NO WARRANTY; This is free software, 
+// and you are welcome to redistribute it under certain conditions; See 
+// file LICENSE, which is part of this source code package, for details.
+// ====================================================
+#endregion
+using UnityEngine;
 using System.Collections.Generic;
 using Priority_Queue;
 using System.Linq;
 
 public class Path_AStar
 {
-
     Queue<Tile> path;
 
-    public Path_AStar(World world, Tile tileStart, Tile tileEnd, string objectType = null, int desiredAmount = 0, bool canTakeFromStockpile = false)
+
+    public Path_AStar(Queue<Tile> path)
+    {
+        if (path == null || !path.Any())
+        {
+            Debug.LogWarning("Created path with no tiles, is this intended?");
+        }
+        this.path = path;
+    }
+
+    public Path_AStar(World world, Tile tileStart, Tile tileEnd, string objectType = null, int desiredAmount = 0, bool canTakeFromStockpile = false, bool lookingForFurn = false)
     {
 
         // if tileEnd is null, then we are simply scanning for the nearest objectType.
@@ -53,29 +70,21 @@ public class Path_AStar
         // Mostly following this pseusocode:
         // https://en.wikipedia.org/wiki/A*_search_algorithm
 
-        List<Path_Node<Tile>> ClosedSet = new List<Path_Node<Tile>>();
+        HashSet<Path_Node<Tile>> ClosedSet = new HashSet<Path_Node<Tile>>();
 
-/*		List<Path_Node<Tile>> OpenSet = new List<Path_Node<Tile>>();
-		OpenSet.Add( start );
+/*        List<Path_Node<Tile>> OpenSet = new List<Path_Node<Tile>>();
+        OpenSet.Add( start );
 */
 
-        SimplePriorityQueue<Path_Node<Tile>> OpenSet = new SimplePriorityQueue<Path_Node<Tile>>();
+        PathfindingPriorityQueue<Path_Node<Tile>> OpenSet = new PathfindingPriorityQueue<Path_Node<Tile>>();
         OpenSet.Enqueue(start, 0);
 
         Dictionary<Path_Node<Tile>, Path_Node<Tile>> Came_From = new Dictionary<Path_Node<Tile>, Path_Node<Tile>>();
 
         Dictionary<Path_Node<Tile>, float> g_score = new Dictionary<Path_Node<Tile>, float>();
-        foreach (Path_Node<Tile> n in nodes.Values)
-        {
-            g_score[n] = Mathf.Infinity;
-        }
         g_score[start] = 0;
 
         Dictionary<Path_Node<Tile>, float> f_score = new Dictionary<Path_Node<Tile>, float>();
-        foreach (Path_Node<Tile> n in nodes.Values)
-        {
-            f_score[n] = Mathf.Infinity;
-        }
         f_score[start] = heuristic_cost_estimate(start, goal);
 
         while (OpenSet.Count > 0)
@@ -94,16 +103,22 @@ public class Path_AStar
             else
             {
                 // We don't have a POSITIONAL goal, we're just trying to find
-                // some king of inventory.  Have we reached it?
-                if (current.data.inventory != null && current.data.inventory.objectType == objectType)
+                // some kind of inventory or furniture.  Have we reached it?
+                if (current.data.Inventory != null && current.data.Inventory.objectType == objectType && lookingForFurn == false && current.data.Inventory.isLocked == false)
                 {
-                    // Type is correct
-                    if (canTakeFromStockpile || current.data.furniture == null || current.data.furniture.IsStockpile() == false)
+                    // Type is correct and we are allowed to pick it up
+                    if (canTakeFromStockpile || current.data.Furniture == null || current.data.Furniture.IsStockpile() == false)
                     {
                         // Stockpile status is fine
                         reconstruct_path(Came_From, current);
                         return;
                     }
+                }
+                if (current.data.Furniture != null && current.data.Furniture.objectType == objectType && lookingForFurn)
+                {
+                    // Type is correct
+                    reconstruct_path(Came_From, current);
+                    return;
                 }
             }
 
@@ -113,10 +128,10 @@ public class Path_AStar
             {
                 Path_Node<Tile> neighbor = edge_neighbor.node;
 
-                if (ClosedSet.Contains(neighbor) == true)
+                if (ClosedSet.Contains(neighbor))
                     continue; // ignore this already completed neighbor
 
-                float movement_cost_to_neighbor = neighbor.data.movementCost * dist_between(current, neighbor);
+                float movement_cost_to_neighbor = neighbor.data.MovementCost * dist_between(current, neighbor);
 
                 float tentative_g_score = g_score[current] + movement_cost_to_neighbor;
 
@@ -127,15 +142,7 @@ public class Path_AStar
                 g_score[neighbor] = tentative_g_score;
                 f_score[neighbor] = g_score[neighbor] + heuristic_cost_estimate(neighbor, goal);
 
-                if (OpenSet.Contains(neighbor) == false)
-                {
-                    OpenSet.Enqueue(neighbor, f_score[neighbor]);
-                }
-                else
-                {
-                    OpenSet.UpdatePriority(neighbor, f_score[neighbor]);
-                }
-
+                OpenSet.EnqueueOrUpdate(neighbor, f_score[neighbor]);
             } // foreach neighbour
         } // while
 
@@ -175,7 +182,7 @@ public class Path_AStar
             return 1f;
         }
 
-        // Diag neighbours have a distance of 1.41421356237	
+        // Diag neighbours have a distance of 1.41421356237
         if (Mathf.Abs(a.data.X - b.data.X) == 1 && Mathf.Abs(a.data.Y - b.data.Y) == 1)
         {
             return 1.41421356237f;
@@ -252,4 +259,8 @@ public class Path_AStar
         return path.Last();
     }
 
+    public IEnumerable<Tile> Reverse()
+    {
+        return path == null ? null : path.Reverse();
+    }
 }

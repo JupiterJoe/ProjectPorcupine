@@ -1,7 +1,15 @@
-﻿using UnityEngine;
+#region License
+// ====================================================
+// Project Porcupine Copyright(C) 2016 Team Porcupine
+// This program comes with ABSOLUTELY NO WARRANTY; This is free software, 
+// and you are welcome to redistribute it under certain conditions; See 
+// file LICENSE, which is part of this source code package, for details.
+// ====================================================
+#endregion
+using UnityEngine;
 using System.Collections.Generic;
 
-public class JobSpriteController : MonoBehaviour
+public class JobSpriteController
 {
 
     // This bare-bones controller is mostly just going to piggyback
@@ -10,21 +18,24 @@ public class JobSpriteController : MonoBehaviour
 
     FurnitureSpriteController fsc;
     Dictionary<Job, GameObject> jobGameObjectMap;
+    World world;
+    GameObject jobParent;
 
     // Use this for initialization
-    void Start()
+    public JobSpriteController(World currentWorld, FurnitureSpriteController furnitureSpriteController)
     {
+        world = currentWorld;
         jobGameObjectMap = new Dictionary<Job, GameObject>();
-        fsc = GameObject.FindObjectOfType<FurnitureSpriteController>();
 
-        // FIXME: No such thing as a job queue yet!
-        WorldController.Instance.world.jobQueue.RegisterJobCreationCallback(OnJobCreated);
+        fsc = furnitureSpriteController;
+        world.jobQueue.cbJobCreated += OnJobCreated;
+        jobParent = new GameObject("Jobs");
     }
 
     void OnJobCreated(Job job)
     {
 
-        if (job.jobObjectType == null)
+        if (job.jobObjectType == null && job.jobTileType == TileType.Empty)
         {
             // This job doesn't really have an associated sprite with it, so no need to render.
             return;
@@ -47,11 +58,24 @@ public class JobSpriteController : MonoBehaviour
         jobGameObjectMap.Add(job, job_go);
 
         job_go.name = "JOB_" + job.jobObjectType + "_" + job.tile.X + "_" + job.tile.Y;
-        job_go.transform.position = new Vector3(job.tile.X + ((job.furniturePrototype.Width - 1) / 2f), job.tile.Y + ((job.furniturePrototype.Height - 1) / 2f), 0);
-        job_go.transform.SetParent(this.transform, true);
+        job_go.transform.SetParent(jobParent.transform, true);
 
         SpriteRenderer sr = job_go.AddComponent<SpriteRenderer>();
-        sr.sprite = fsc.GetSpriteForFurniture(job.jobObjectType);
+        if (job.jobTileType != TileType.Empty)
+        {
+            //This job is for building a tile
+            //For now, the only tile that could be is the floor, so just show a floor sprite
+            //until the graphics system for tiles is fleshed out further
+
+            job_go.transform.position = new Vector3(job.tile.X, job.tile.Y, 0);
+            sr.sprite = SpriteManager.current.GetSprite("Tile", "Empty");
+        }
+        else
+        {
+            //This is a normal furniture job.
+            job_go.transform.position = new Vector3(job.tile.X + ((job.furniturePrototype.Width - 1) / 2f), job.tile.Y + ((job.furniturePrototype.Height - 1) / 2f), 0);
+            sr.sprite = fsc.GetSpriteForFurniture (job.jobObjectType);
+        }
         sr.color = new Color(0.5f, 1f, 0.5f, 0.25f);
         sr.sortingLayerName = "Jobs";
 
@@ -62,19 +86,19 @@ public class JobSpriteController : MonoBehaviour
             // Check to see if we actually have a wall north/south, and if so
             // then rotate this GO by 90 degrees
 
-            Tile northTile = World.current.GetTileAt(job.tile.X, job.tile.Y + 1);
-            Tile southTile = World.current.GetTileAt(job.tile.X, job.tile.Y - 1);
+            Tile northTile = world.GetTileAt(job.tile.X, job.tile.Y + 1);
+            Tile southTile = world.GetTileAt(job.tile.X, job.tile.Y - 1);
 
-            if (northTile != null && southTile != null && northTile.furniture != null && southTile.furniture != null &&
-            northTile.furniture.objectType.Contains("Wall") && southTile.furniture.objectType.Contains("Wall"))
+            if (northTile != null && southTile != null && northTile.Furniture != null && southTile.Furniture != null &&
+            northTile.Furniture.objectType.Contains("Wall") && southTile.Furniture.objectType.Contains("Wall"))
             {
                 job_go.transform.rotation = Quaternion.Euler(0, 0, 90);
             }
         }
 
 
-        job.RegisterJobCompletedCallback(OnJobEnded);
-        job.RegisterJobStoppedCallback(OnJobEnded);
+        job.cbJobCompleted += OnJobEnded;
+        job.cbJobStopped += OnJobEnded;
     }
 
     void OnJobEnded(Job job)
@@ -85,10 +109,10 @@ public class JobSpriteController : MonoBehaviour
 
         GameObject job_go = jobGameObjectMap[job];
 
-        job.UnregisterJobCompletedCallback(OnJobEnded);
-        job.UnregisterJobStoppedCallback(OnJobEnded);
+        job.cbJobCompleted -= OnJobEnded;
+        job.cbJobStopped -= OnJobEnded;
 
-        Destroy(job_go);
+        GameObject.Destroy(job_go);
 
     }
 

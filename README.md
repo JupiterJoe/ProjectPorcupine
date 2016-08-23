@@ -1,6 +1,13 @@
 # ProjectPorcupine
 Project Porcupine: A Base-Building Game...in Space!
 
+[About](#about)  
+[Copyright & Licensing](#copyright--licensing)  
+[Contributing](#contributing)  
+[Vote on Proposed Features](#vote-on-proposed-features)  
+[Community](#community)  
+[Contact](#contact) 
+
 ## About
 
 Project Porcupine was created to serve two purposes:
@@ -13,7 +20,7 @@ Project Porcupine was created to serve two purposes:
 2. To provide a basic skeleton for any game that requires a
   tile-based map with self-governing agents (i.e. characters)
   as well as highly customizable objects (i.e. XML/Lua defined
-  furniture.)  To this end, we would be making a prorgram themed as
+  furniture.)  To this end, we would be making a program themed as
   a starbase-construction game -- though there's no reason that 
   someone couldn't produce something with a wildly different theme
   or purpose (including not being a base-building game at all).
@@ -48,7 +55,19 @@ are licensed under the MIT License and can be found here:
 
 ## Contributing
 
-Please check the CONTRIBUTING.md file for contribution instructions and guidelines.
+Please check the [CONTRIBUTING.md](CONTRIBUTING.md) file for contribution instructions and guidelines.
+
+## Vote on Proposed Features
+
+You can propose features you'd like to see and vote on which ones to prioritize here:  [http://feathub.com/TeamPorcupine/ProjectPorcupine/](http://feathub.com/TeamPorcupine/ProjectPorcupine/)
+
+Here's the current list of proposed features:  
+[![Feature Requests](http://feathub.com/TeamPorcupine/ProjectPorcupine?format=svg)](http://feathub.com/TeamPorcupine/ProjectPorcupine)
+
+## Community
+
+* [Unoffical Discord Channel ](https://discord.gg/68hkpSA)<discord.projectporcupine.com>
+* [Official Subreddit](https://reddit.com/r/ProjectPorcupine)
 
 ## Contact
 

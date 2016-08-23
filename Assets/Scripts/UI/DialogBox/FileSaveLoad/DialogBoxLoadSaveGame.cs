@@ -1,4 +1,12 @@
-﻿using UnityEngine;
+#region License
+// ====================================================
+// Project Porcupine Copyright(C) 2016 Team Porcupine
+// This program comes with ABSOLUTELY NO WARRANTY; This is free software, 
+// and you are welcome to redistribute it under certain conditions; See 
+// file LICENSE, which is part of this source code package, for details.
+// ====================================================
+#endregion
+using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using System.Xml.Serialization;
@@ -15,6 +23,8 @@ public class DialogBoxLoadSaveGame : DialogBox
 
     public GameObject fileListItemPrefab;
     public Transform fileList;
+
+    public static readonly Color secondaryColor = new Color(0.9f, 0.9f,0.9f);
 
     /// <summary>
     /// If directory doesn't exist EnsureDirectoryExists will create one.
@@ -49,8 +59,9 @@ public class DialogBoxLoadSaveGame : DialogBox
 
         // Build file list by instantiating fileListItemPrefab
 
-        foreach (FileInfo file in saveGames)
+        for (int i = 0; i < saveGames.Length; i++)
         {
+            FileInfo file = saveGames[i];
             GameObject go = (GameObject)GameObject.Instantiate(fileListItemPrefab);
 
             // Make sure this gameobject is a child of our list box
@@ -60,10 +71,19 @@ public class DialogBoxLoadSaveGame : DialogBox
             // Path.GetFileName(file) returns "SomeFileName.sav"
             // Path.GetFileNameWithoutExtension(file) returns "SomeFileName"
 
-            go.GetComponentInChildren<Text>().text = Path.GetFileNameWithoutExtension(file.FullName);
+            string fileName = Path.GetFileNameWithoutExtension(file.FullName);
 
-            go.GetComponent<DialogListItem>().inputField = inputField;
+            go.GetComponentInChildren<Text>().text = string.Format("{0}\n<size=11><i>{1}</i></size>", fileName, file.CreationTime);
+
+            DialogListItem listItem = go.GetComponent<DialogListItem>();
+            listItem.fileName = fileName;
+            listItem.inputField = inputField;
+
+            go.GetComponent<Image>().color = (i % 2 == 0 ? Color.white : secondaryColor);
         }
+
+		// Set scroll sensitivity based on the save-item count
+		fileList.GetComponentInParent<ScrollRect> ().scrollSensitivity = fileList.childCount / 2;
     }
 
     public override void CloseDialog()
